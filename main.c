@@ -104,14 +104,14 @@ int main(int argc, char *argv[])
         /* increment by diff */
         totaltime += (timestamp() - wtime);
         
-        printf("\r -> writed: %lu MB at %lu MB/s, %lu%% ", MB(writed), (KB(w) / (timestamp() - wtime)), 
-               totalsize > 0? writed * 100 / totalsize : 0);
+        printf("\r -> writed: %lu MB at %.02f MB/s, %.02f%% ", MB(writed), ((float)KB(w) / (timestamp() - wtime)), 
+               totalsize > 0? (float)writed * 100.0 / totalsize : 0);
         fflush(stdout);
     }
     
     
-    printf("\n\n ========= OK ========== \n%lu Mb => %lu Mb, %lu s, %lu MB/s\n", 
-           MB(readed), MB(writed), MS(totaltime), (writed? (KB(writed) / (totaltime)) : 0));
+    printf("\n\n ========= OK ========== \n%lu Mb => %lu Mb, %lu s, %.02f MB/s\n", 
+           MB(readed), MB(writed), MS(totaltime), (writed? ((float)KB(writed) / (totaltime)) : 0));
     
     _end:
     close(ifd);
