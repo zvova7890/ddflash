@@ -7,8 +7,8 @@
 #include <errno.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
-
 
 
 #define KB(x)       (x? (x / 1024) : 0)
@@ -16,6 +16,14 @@
 #define MS(x)       (x? (x / 1000) : 0)
 
 
+#define RED "\033[0;31m"
+#define GREEN "\033[0;32m"
+#define ORANGE "\033[0;33m"
+#define NC "\033[0m"
+
+#define printf_warn(...) printf("[" RED "WARN" NC "] " __VA_ARGS__)
+#define printf_err(...) printf("[" RED "ERR" NC "] " __VA_ARGS__)
+#define printf_info(...) printf("[" GREEN "INFO" NC "] " __VA_ARGS__)
 
 unsigned long timestamp()
 {
@@ -25,6 +33,26 @@ unsigned long timestamp()
     return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
+int disk_info(const char *odev)
+{
+    char tmp[128];
+    
+    // Check if odev is a device path
+    if (strstr(odev, "/dev/") != odev)
+        return -1;
+
+    // Use stat to get information about the file
+    struct stat file_info;
+    if (stat(odev, &file_info) != 0)
+        return -1;
+    
+    if (!S_ISBLK(file_info.st_mode))
+        return -1;
+    
+    snprintf(tmp, sizeof(tmp), "fdisk -l %s", odev);
+    system(tmp);
+    return 0;
+}
 
 int main(int argc, char *argv[])
 {
@@ -42,9 +70,11 @@ int main(int argc, char *argv[])
     off64_t totalsize = 0;
     int ifd = -1, ofd = -1;
 
-    
+    if (disk_info(ofile) == 0)
+        printf("\n");
+
     while(1) {
-        printf(" WARN: Did you accept to write \"%s\"?\n [y/n]: ", ofile);
+        printf_warn("Do you accept to write \"" ORANGE "%s" NC "\"? [Y/n]: ", ofile);
         int is = getc(stdin);
         if( is != 'n' && is != 'y' ) {
             printf("Choise y or n\n");
@@ -52,8 +82,8 @@ int main(int argc, char *argv[])
         }
         
         if( is == 'n' ) {
-            printf("Aborted\n");
-            goto _end;
+            printf_err("Aborted\n");
+            return 1;
         }
         
         break;
@@ -104,16 +134,16 @@ int main(int argc, char *argv[])
         /* increment by diff */
         totaltime += (timestamp() - wtime);
         
-        printf("\r -> writed: %lu MB at %.02f MB/s, %.02f%% ", MB(writed), ((float)KB(w) / (timestamp() - wtime)), 
+        printf("\r -> written: %lu MB at %.02f MB/s, %.02f%% ", MB(writed), ((float)KB(w) / (timestamp() - wtime)), 
                totalsize > 0? (float)writed * 100.0 / totalsize : 0);
         fflush(stdout);
     }
     
-    
-    printf("\n\n ========= OK ========== \n%lu Mb => %lu Mb, %lu s, %.02f MB/s\n", 
+    printf("\n\n");
+    printf_info(" => OK!\n");
+    printf("%lu Mb => %lu Mb, %lu s, %.02f MB/s\n", 
            MB(readed), MB(writed), MS(totaltime), (writed? ((float)KB(writed) / (totaltime)) : 0));
     
-    _end:
     close(ifd);
     close(ofd);
     return 0;
