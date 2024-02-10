@@ -1,9 +1,9 @@
 
 
-CXX=gcc 
+CXX=gcc
 LD=gcc
 
-CFLAGS=-O2 -Wall
+CFLAGS=-O2 -Wall -g
 
 
 all:
